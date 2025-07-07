@@ -3,7 +3,7 @@ import type { HTMLMotionProps } from 'framer-motion'
 
 interface ButtonProps extends HTMLMotionProps<'button'> {
   variant?: 'primary' | 'outline'
-  size?: 'xs' | 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg'
 }
 
 export function Button({
@@ -21,8 +21,7 @@ export function Button({
   }
 
   const sizes = {
-    xs: 'px-2 py-1 text-xs',
-    sm: 'px-4 py-2 text-sm',
+    sm: 'px-2 py-1 text-sm',
     md: 'px-6 py-2',
     lg: 'px-8 py-3 text-lg',
   }
@@ -33,7 +32,7 @@ export function Button({
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
-      {children}
+      { children }
     </motion.button>
   )
 }

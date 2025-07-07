@@ -4,7 +4,7 @@ import logo from '@/public/logo.png'
 
 export function Header() {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex justify-center md:justify-between items-center px-16 py-12 bg-transparent backdrop-blur">
+    <header className="fixed top-0 left-0 right-0 z-50 flex justify-center md:justify-between items-center px-16 py-7 bg-transparent backdrop-blur">
       <Image
         src={ logo }
         alt='Logo Clienteer'

@@ -7,7 +7,7 @@ import { FadeInSection } from '@/animations/fadeIn'
 
 export default function Home() {
   return (
-    <main>
+    <main className='px-12 py-7 md:px-20' >
       <Header />
       <FadeInSection>
         <section id='hero' >

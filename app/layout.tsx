@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body
-        className={`${getRoboto.variable} bg-background text-foreground px-12 py-7 md:px-20 antialiased`}
+        className={`${ getRoboto.variable } bg-background text-foreground antialiased`}
       >
         { children }
       </body>

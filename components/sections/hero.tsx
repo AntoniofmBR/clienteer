@@ -14,7 +14,7 @@ export function HeroSection() {
 
   return (
     <nav className='min-h-screen md:h-screen flex flex-col gap-4 md:gap-16 w-full justify-center items-center' >
-      <h1 className='text-2xl mt-12 md:text-6xl font-bold text-center' >
+      <h1 className='text-2xl mt-12 lg:text-4xl font-bold text-center' >
         Visualize os seus clientes e servidores <br /> <span className='text-green' > em um só lugar </span>
       </h1>
       <form
