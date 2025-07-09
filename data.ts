@@ -1,4 +1,4 @@
-import { Role, ServerStatus } from './lib/generated/prisma';
+import { Role, ServerStatus } from '@/lib/generated/prisma';
 
 
 export const usersData = [
