@@ -1,9 +1,9 @@
 import { ColumnDef } from "@tanstack/react-table"
 
-import { Server } from "@/@types/servers"
+import { Server, ServerForTable } from "@/@types/servers"
 import { Button } from "@/components/button"
 
-export const columns: ColumnDef<Server>[] = [
+export const columns: ColumnDef<ServerForTable>[] = [
   {
     accessorKey: "name",
     header: "Nome",
@@ -31,14 +31,14 @@ export const columns: ColumnDef<Server>[] = [
     header: "Status",
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
-      const color = status === "Funcionando" ? "bg-emerald-500" : "bg-red";
+      const color = status === "FUNCIONANDO" ? "bg-emerald-500" : "bg-red";
       return (
         <div className='flex items-center justify-center gap-1' >
           <span
             className={ `px-1 py-1 rounded-full text-sm ${color}` }
             />
             <p className='text-white' >
-             { status }
+             { status.toLowerCase() }
             </p>
         </div>
       )

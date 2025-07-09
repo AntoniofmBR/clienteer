@@ -12,10 +12,12 @@ import {
   SortingState,
 } from "@tanstack/react-table"
 import { Plus, XCircle } from 'phosphor-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { useQuery } from '@tanstack/react-query'
 
-import { clients } from "@/data"
-import { Client } from "@/@types/clients"
+import { ClientForTable } from "@/@types/clients"
+import { ServerForTable } from "@/@types/servers"
+import { User } from "@/@types/users"
 
 import { columns as baseColumns } from "./clientColumns"
 
@@ -38,13 +40,33 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/input'
+import { AddClientsModal } from '@/components/addClientsModal'
+import { EditClientForm } from '@/components/editClientForm'
 
-export function ClientsTable() {
+async function fetchClients(): Promise<ClientForTable[]> {
+  const res = await fetch('/api/clients');
+  if (!res.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return res.json();
+}
+
+export function ClientsTable({ managers, servers, userRole }: { 
+  managers: User[];
+  servers: ServerForTable[];
+  userRole: string;
+}) {
   const options = [ 5,
     10, 15, 20 ]
 
-  const [ data ] = useState<Client[]>(clients)
-  const [ selectedClient, setSelectedClient ] = useState<Client | null>(null)
+  const [ selectedClient, setSelectedClient ] = useState<ClientForTable | null>(null)
+  const [ isAddModalOpen, setIsAddModalOpen ] = useState(false);
+  const [ isEditing, setIsEditing ] = useState(false);
+
+  const { data: clients, isLoading, isError } = useQuery<ClientForTable[]>({
+    queryKey: ['clients'],
+    queryFn: fetchClients,
+  })
 
   const [ pagination, setPagination ] = useState({
     pageIndex: 0,
@@ -78,7 +100,7 @@ export function ClientsTable() {
   })
 
   const table = useReactTable({
-    data,
+    data: clients ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -141,6 +163,12 @@ export function ClientsTable() {
     return items;
   };
 
+  function handleCloseModal() {
+    setSelectedClient(null)
+    setIsEditing(false)
+    setIsAddModalOpen(false)
+  }
+
   const filterTabs = [
     {
       id: 'todos',
@@ -194,6 +222,8 @@ export function ClientsTable() {
     },
   ]
 
+  if ( isLoading ) return <p>Carregando tabela de servidores...</p>;
+  if ( isError ) return <p>Erro ao carregar os servidores.</p>;
 
   return (
     <div className="w-full overflow-x-auto rounded-lg bg-transparent flex flex-col justify-between">
@@ -228,21 +258,23 @@ export function ClientsTable() {
             onChange={ ( e ) => setGlobalFilter( e.target.value ) }
           />
         </div>
-
-        <div className='w-[30%] h-7 flex justify-end' >
-          <button
-            className='flex justify-end items-center gap-2 h-full'
-            onClick={ () => alert('Adicionado') }
-          >
-            <Plus
-              weight='bold'
-              size={ 27 }
-            />
-            <p className='text-lg font-semibold' >
-              Adicionar Novo Cliente
-            </p>
-          </button>
-        </div>
+        
+        { userRole === 'ADMIN' && (
+          <div className='w-[30%] h-7 flex justify-end' >
+            <button
+              className='flex justify-end items-center gap-2 h-full'
+              onClick={ () => setIsAddModalOpen(true) }
+            >
+              <Plus
+                weight='bold'
+                size={ 27 }
+              />
+              <p className='text-lg font-semibold' >
+                Adicionar Novo Cliente
+              </p>
+            </button>
+          </div>
+        ) }
       </header>
 
       <table className="w-full text-center text-sm border-separate border-spacing-y-3">
@@ -303,7 +335,7 @@ export function ClientsTable() {
       <footer className='flex items-center justify-between' >
         <div className='w-fit py-2 px-4 flex items-center justify-center bg-cards-secondary rounded-lg' >
           <p className='font-semibold' >
-            { currentItemsPerPage } de {clients.length} Clientes
+            { currentItemsPerPage } de { clients?.length || '0' } Clientes
           </p>
         </div>
 
@@ -371,39 +403,55 @@ export function ClientsTable() {
         </div>
       </footer>
 
-      <Modal
-        isOpen={!!selectedClient}
-        onClose={() => setSelectedClient(null)}
-        title='Detalhes do Cliente'
-        description='Confira os detalhes do cliente'
-        size='xl'
-      >
-        {selectedClient && (
-          <div className="space-y-2">
-            <p className='text-lg'>
-              <strong> Nome: </strong> {selectedClient.name}
-            </p>
-            <p className='text-lg'>
-              <strong>Empresa:</strong> {selectedClient.company}
-            </p>
-            <p className='text-lg'>
-              <strong>Plano de Rota:</strong> {selectedClient.routePlan}
-            </p>
-            <p className='text-lg'>
-              <strong>Plano Fixo:</strong> {selectedClient.fixedPlan}
-            </p>
-            <p className='text-lg'>
-              <strong>Servidor:</strong> {selectedClient.server}
-            </p>
-            <p className='text-lg'>
-              <strong>Gerente:</strong> {selectedClient.manager}
-            </p>
-            <p className='text-lg'>
-              <strong>Status:</strong> {selectedClient.status}
-            </p>
-          </div>
-        )}
-      </Modal>
+    <Modal
+      isOpen={ !!selectedClient }
+      onClose={ handleCloseModal }
+      title={ isEditing ? "Editar Cliente" : "Detalhes do Cliente"}
+      description={ isEditing ? "Altere os dados necessários abaixo." : "Confira os detalhes do cliente" }
+    >
+      { selectedClient && (
+        <div>
+          { isEditing && userRole === 'ADMIN' ? (
+            <EditClientForm
+              client={ selectedClient }
+              managers={ managers }
+              servers={ servers }
+              onSuccess={ () => setIsEditing(false) }
+              onCancel={ () => setIsEditing( false ) }
+            />
+          ) : (
+            <>
+              <div className="space-y-2">
+                <p className='text-lg'><strong>Id:</strong> { selectedClient.id }</p>
+                <p className='text-lg'><strong>Nome:</strong> { selectedClient.name }</p>
+                <p className='text-lg'><strong>Empresa:</strong> { selectedClient.company }</p>
+                <p className='text-lg'><strong>Plano de Rota:</strong> { selectedClient.routePlan }</p>
+                <p className='text-lg'><strong>PLano Fixo:</strong> { selectedClient.fixedPlan }</p>
+                <p className='text-lg'><strong>Servidor:</strong> { selectedClient.server }</p>
+                <p className='text-lg'><strong>Status:</strong> { selectedClient.status }</p>
+                <p className='text-lg'><strong>Gerente:</strong> { selectedClient.managerName }</p>
+                <p className='text-lg'><strong>Criado em:</strong> { new Date(selectedClient.createdAt).toLocaleDateString( 'pt-BR' ) }</p>
+                <p className='text-lg'><strong>Ultima vez atualizado em: </strong> { new Date( selectedClient.updatedAt ).toLocaleDateString('pt-BR') }</p>
+              </div>
+              { userRole === 'ADMIN' && (
+                <div className="mt-6 flex justify-end">
+                  <Button onClick={ () => setIsEditing(true) }>
+                    Atualizar dados
+                  </Button>
+                </div>
+              ) }
+            </>
+          )}
+        </div>
+      )}
+    </Modal>
+
+    <AddClientsModal
+      isAddModalOpen={ isAddModalOpen }
+      setIsAddModalOpen={ setIsAddModalOpen }
+      managers={ managers }
+      servers={ servers }
+    />
     </div>
   )
 }

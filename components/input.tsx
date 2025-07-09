@@ -21,21 +21,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
 
   return (
     <div className="w-full">
-      {label && (
+      { label && (
         <label className='text-lg font-bold text-foreground mb-2 block'>
-          {label}
+          { label }
         </label>
-      )}
+      ) }
       <div className='relative w-full'>
-        {IconComponent && (
+        { IconComponent && (
           <div className="absolute left-2 top-1/2 transform -translate-y-1/2 text-black">
             <IconComponent size={ 27 } weight='fill' />
           </div>
-        )}
+        ) }
         <input
-          ref={ref}
-          className={`${error ? errorStyle : baseStyle} ${paddingStyle} ${className}`}
-          {...props}
+          ref={ ref }
+          className={ `${error ? errorStyle : baseStyle} ${paddingStyle} ${className}` }
+          { ...props }
         />
       </div>
     </div>

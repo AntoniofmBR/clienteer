@@ -1,7 +1,14 @@
+import { Server as PrismaServer, ServerStatus } from '@/lib/generated/prisma';
+
+export type ServerForTable = PrismaServer & {
+  totalClients: number;
+};
+
 export interface Server {
-  id: number
+  id: string
   name: string
-  ip: number
-  totalClients: number
-  status: 'Funcionando' | 'Inoperante'
+  ip: string
+  status: ServerStatus
+  createdAt: Date
+  updatedAt: Date
 }

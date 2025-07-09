@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/**
+ * Enum
+ */
+enum Role {
+  ADMIN
+  MANAGER
+}
+
+enum ServerStatus {
+  FUNCIONANDO
+  INOPERANTE
+}
+
+/**
+ * Models
+ */
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(MANAGER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientsManaged Client[] @relation("ManagerToClients")
+}
+
+model Server {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  ip        String
+  status    ServerStatus @default(FUNCIONANDO)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  clients Client[]
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  company   String
+  routePlan String
+  fixedPlan String
+  status    String   @default("Ativo")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serverId String
+  server   Server @relation(fields: [serverId], references: [id])
+
+  managerId String
+  manager   User   @relation("ManagerToClients", fields: [managerId], references: [id])
+}

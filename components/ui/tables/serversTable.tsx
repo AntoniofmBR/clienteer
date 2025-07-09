@@ -13,12 +13,11 @@ import {
 } from "@tanstack/react-table"
 import { motion } from 'framer-motion'
 import { Plus, XCircle } from 'phosphor-react'
+import { useQuery } from '@tanstack/react-query'
 
+import { Server, ServerForTable } from "@/@types/servers"
 
-import { servers } from "@/data"
-import { Server } from "@/@types/servers"
-
-import { columns as baseColumns } from "./serverColumn"
+import { columns as baseColumns } from "./serverColumns"
 
 import { Modal } from '@/components/modal'
 import { Button } from '@/components/button'
@@ -39,13 +38,31 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/input'
+import { EditServerForm } from '@/components/editServerForm'
+import { AddServerForm } from '@/components/addServersForm'
+import { AddServersModal } from '@/components/addServersModal'
 
-export function ServersTable() {
+async function fetchServers(): Promise<ServerForTable[]> {
+  const res = await fetch('/api/servers');
+  if (!res.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return res.json();
+}
+
+export function ServersTable({ userRole }: { userRole: string }) {
   const options = [ 5,
     10, 15, 20 ]
 
-  const [ data ] = useState<Server[]>( servers )
-  const [ selectedServer, setSelectedServer ] = useState<Server | null>(null)
+  const [ selectedServer, setSelectedServer ] = useState<ServerForTable | null>(null)
+  const [ isAddModalOpen, setIsAddModalOpen ] = useState(false);
+  const [ isEditing, setIsEditing ] = useState(false);
+
+  const { data: servers, isLoading, isError } = useQuery<ServerForTable[]>({
+    queryKey: ['servers'],
+    queryFn: fetchServers,
+  })
+
 
   const [ pagination, setPagination ] = useState({
     pageIndex: 0,
@@ -79,7 +96,7 @@ export function ServersTable() {
   })
 
   const table = useReactTable({
-    data,
+    data: servers ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -185,6 +202,15 @@ export function ServersTable() {
     },
   ]
 
+  function handleCloseModal() {
+    setSelectedServer(null)
+    setIsEditing(false)
+    setIsAddModalOpen(false)
+  }
+
+  if ( isLoading ) return <p>Carregando tabela de servidores...</p>;
+  if ( isError ) return <p>Erro ao carregar os servidores.</p>;
+
   return (
     <div className="w-full overflow-x-auto rounded-lg bg-transparent flex flex-col justify-between">
       <header className='flex items-center justify-between' >
@@ -201,7 +227,7 @@ export function ServersTable() {
               {tab.label}
               {tab.isActive && (
                 <motion.div
-                  layoutId="active-server-background" // ID único para esta tabela
+                  layoutId="active-server-background"
                   className="absolute inset-0 bg-green rounded-lg"
                   transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   style={{ zIndex: -1 }}
@@ -219,20 +245,22 @@ export function ServersTable() {
           />
         </div>
 
-        <div className='w-[30%] h-7 flex justify-end' >
-          <button
-            className='flex justify-end items-center gap-2 h-full'
-            onClick={ () => alert('Adicionado') }
-          >
-            <Plus
-              weight='bold'
-              size={ 27 }
-            />
-            <p className='text-lg font-semibold' >
-              Adicionar Novo Servidor
-            </p>
-          </button>
-        </div>
+        { userRole === 'ADMIN' && (
+          <div className='w-[30%] h-7 flex justify-end' >
+            <button
+              className='flex justify-end items-center gap-2 h-full'
+              onClick={ () => setIsAddModalOpen(true) }
+            >
+              <Plus
+                weight='bold'
+                size={ 27 }
+              />
+              <p className='text-lg font-semibold' >
+                Adicionar Novo Servidor
+              </p>
+            </button>
+          </div>
+        ) }
       </header>
 
       <table className="w-full text-center text-sm border-separate border-spacing-y-3">
@@ -293,7 +321,7 @@ export function ServersTable() {
       <footer className='flex items-center justify-between' >
         <div className='w-fit py-2 px-4 flex items-center justify-center bg-cards-secondary rounded-lg' >
           <p className='font-semibold' >
-            { currentItemsPerPage } de { servers.length} Servidores
+            { currentItemsPerPage } de { servers?.length } Servidores
           </p>
         </div>
 
@@ -362,29 +390,59 @@ export function ServersTable() {
       </footer>
 
       <Modal
-        isOpen={!!selectedServer}
-        onClose={() => setSelectedServer(null)}
+        isOpen={ !!selectedServer }
+        onClose={ handleCloseModal }
         title='Detalhes do Servidor'
         description='Confira os detalhes do Servidor'
         size='xl'
       >
         { selectedServer && (
-          <div className="space-y-2">
-            <p className='text-lg'>
-              <strong> Nome: </strong> { selectedServer.name }
-            </p>
-            <p className='text-lg'>
-              <strong>IP: </strong> { selectedServer.ip }
-            </p>
-            <p className='text-lg'>
-              <strong>Quantidade de Clientes:</strong> { selectedServer.totalClients } Clientes
-            </p>
-            <p className='text-lg'>
-              <strong>Status</strong> { selectedServer.status }
-            </p>
+          <div>
+            { isEditing && userRole === 'ADMIN' ? (
+              <EditServerForm
+                server={ selectedServer }
+                onSuccess={ () => setIsEditing(false) }
+                onCancel={ () => setIsEditing( false ) }
+              />
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <p className='text-lg'>
+                    <strong> Nome: </strong> { selectedServer.name }
+                  </p>
+                  <p className='text-lg'>
+                    <strong> IP: </strong> { selectedServer.ip }
+                  </p>
+                  <p className='text-lg'>
+                    <strong> Quantidade de Clientes: </strong> { selectedServer.totalClients } Clientes
+                  </p>
+                  <p className='text-lg'>
+                    <strong> Status: </strong> { selectedServer.status.toLowerCase() }
+                  </p>
+                  <p className='text-lg'>
+                    <strong> Criado em: </strong> { new Date( selectedServer.createdAt ).toLocaleDateString('pt-BR') }
+                  </p>
+                  <p className='text-lg'>
+                    <strong> Ultima vez atualizado em: </strong> { new Date( selectedServer.updatedAt ).toLocaleDateString('pt-BR') }
+                  </p>
+                </div>
+                { userRole === 'ADMIN' && (
+                <div className="mt-6 flex justify-end">
+                  <Button onClick={ () => setIsEditing(true) }>
+                    Atualizar dados
+                  </Button>
+                </div>
+              ) }
+              </>
+            ) }
           </div>
-        )}
+        ) }
       </Modal>
+
+      <AddServersModal
+        isAddModalOpen={ isAddModalOpen }
+        setIsAddModalOpen={ setIsAddModalOpen }
+      />
     </div>
   )
 }

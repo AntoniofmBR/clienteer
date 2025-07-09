@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
+import { SessionProvider } from 'next-auth/react';
+import { Toaster } from 'sonner';
+import { Providers } from '@/components/providers';
 
 import "./globals.css";
 
@@ -23,7 +26,12 @@ export default function RootLayout({
       <body
         className={`${ getRoboto.variable } bg-background text-foreground antialiased`}
       >
-        { children }
+        <SessionProvider>
+          <Providers>
+            { children }
+            <Toaster richColors />
+          </Providers>
+        </SessionProvider>
       </body>
     </html>
   );

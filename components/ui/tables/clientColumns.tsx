@@ -1,8 +1,8 @@
 import { ColumnDef } from "@tanstack/react-table"
-import { Client } from "@/@types/clients"
+import { ClientForTable } from "@/@types/clients"
 import { Button } from "@/components/button"
 
-export const columns: ColumnDef<Client>[] = [
+export const columns: ColumnDef<ClientForTable>[] = [
   {
     accessorKey: "name",
     header: "Nome",
@@ -24,7 +24,7 @@ export const columns: ColumnDef<Client>[] = [
     header: "Servidor",
   },
   {
-    accessorKey: "manager",
+    accessorKey: "managerName",
     header: "Gerente",
   },
   {

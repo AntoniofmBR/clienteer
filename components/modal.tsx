@@ -74,7 +74,6 @@ export function Modal({
           </CardHeader>
         ) }
 
-        {/* Conteúdo do Modal */}
         <CardContent className={!(title || description) ? 'pt-6' : ''}>
           {children}
         </CardContent>
