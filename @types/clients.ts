@@ -1,4 +1,4 @@
-import { Client as PrismaClient } from '@/lib/generated/prisma';
+import { Client as PrismaClient } from '@prisma/client';
 
 export type ClientForTable = PrismaClient & {
   server: string;

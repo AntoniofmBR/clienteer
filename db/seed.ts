@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 
-import { PrismaClient } from '@/lib/generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { usersData, serversData, clientsData } from '@/data';
 
 

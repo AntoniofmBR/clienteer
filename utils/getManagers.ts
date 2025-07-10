@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import { ManagerForTable } from '@/@types/users';
-import { Role } from '@/lib/generated/prisma';
+import { Role } from '@prisma/client';
 
 export async function getManagers(): Promise<ManagerForTable[]> {
   const managersFromDb = await prisma.user.findMany({

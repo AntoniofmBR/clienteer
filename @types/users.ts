@@ -1,4 +1,4 @@
-import { Role, User as PrismaUser } from '@/lib/generated/prisma'
+import { Role, User as PrismaUser } from '@prisma/client'
 
 export interface User {
   id: string

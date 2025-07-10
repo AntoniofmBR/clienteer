@@ -1,4 +1,4 @@
-import { Server as PrismaServer, ServerStatus } from '@/lib/generated/prisma';
+import { Server as PrismaServer, ServerStatus } from '@prisma/client';
 
 export type ServerForTable = PrismaServer & {
   totalClients: number;
