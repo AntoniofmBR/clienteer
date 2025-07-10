@@ -8,15 +8,24 @@ import { ClientForTable } from '@/@types/clients';
 import { Input } from './input';
 import { Button } from './button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useFormStatus } from 'react-dom';
 
 type Manager = { id: string; name: string };
 type Server = { id: string; name: string };
-type ClientUpdateData = Omit<ClientForTable, 'id' | 'createdAt' | 'updatedAt'>
 
-async function updateClientMutationFn(
-  { id, ...data }: { id: string } & Partial<ClientUpdateData>
-) {
-  const response = await fetch(`/api/clients/${id}`, {
+type ClientUpdateData = {
+  id: string;
+  name?: string;
+  company?: string;
+  routePlan?: string;
+  fixedPlan?: string;
+  status?: string;
+  serverId?: string;
+  managerId?: string;
+};
+
+async function updateClientMutationFn(data: ClientUpdateData) {
+  const response = await fetch(`/api/clients/update`, {
     method: 'PATCH',
     body: JSON.stringify(data),
     headers: { 'Content-Type': 'application/json' },
@@ -27,6 +36,16 @@ async function updateClientMutationFn(
     throw new Error(errorData.error || 'Falha ao atualizar o cliente');
   }
   return response.json();
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" disabled={ pending } className="w-full">
+      { pending ? "Salvando..." : "Atualizar Cliente" }
+    </Button>
+  );
 }
 
 export function EditClientForm({ client, managers, servers, onSuccess, onCancel }: {
@@ -50,55 +69,53 @@ export function EditClientForm({ client, managers, servers, onSuccess, onCancel 
     },
   });
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit( event: React.FormEvent<HTMLFormElement> ) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const data = Object.fromEntries(formData.entries());
-    
+
     mutation.mutate({ id: client.id, ...data });
   };
 
   return (
     <form onSubmit={ handleSubmit } className="space-y-4">
-      <input type="hidden" name="id" value={ client.id } />
-
       <section className="flex items-center justify-center gap-4">
-        <Input name="name" label="Nome do Cliente:" defaultValue={ client.name } required />
-        <Input name="company" label="Empresa:" defaultValue={ client.company } required />
+        <Input name="name" label="Nome do Cliente:" defaultValue={client.name} required />
+        <Input name="company" label="Empresa:" defaultValue={client.company} required />
       </section>
 
       <section className="grid grid-cols-2 gap-4 w-full">
         <div>
           <label className='text-lg font-bold text-foreground mb-2 block'>Gerente:</label>
-          <Select name="managerId" defaultValue={ client.managerId } required>
+          <Select name="managerId" defaultValue={client.managerId} required>
             <SelectTrigger><SelectValue placeholder="Selecione um gerente" /></SelectTrigger>
             <SelectContent>
-              { managers.map(manager => (
+              {managers.map(manager => (
                 <SelectItem key={manager.id} value={manager.id}>{manager.name}</SelectItem>
-              )) }
+              ))}
             </SelectContent>
           </Select>
         </div>
 
         <div>
           <label className='text-lg font-bold text-foreground mb-2 block'>Servidor:</label>
-          <Select name="serverId" defaultValue={ client.serverId } required>
+          <Select name="serverId" defaultValue={client.serverId} required>
             <SelectTrigger><SelectValue placeholder="Selecione um servidor" /></SelectTrigger>
             <SelectContent>
-              { servers.map(server => (
+              {servers.map(server => (
                 <SelectItem key={server.id} value={server.id}>{server.name}</SelectItem>
-              )) }
+              ))}
             </SelectContent>
           </Select>
         </div>
       </section>
       
-      <section className="grid grid-cols-3 gap-4 w-full">
-        <Input name="routePlan" label="Plano de Rota:" defaultValue={ client.routePlan } required />
-        <Input name="fixedPlan" label="Plano Fixo:" defaultValue={ client.fixedPlan } required />
+      <section className="grid grid-cols-3 gap-4 w-full items-end">
+        <Input name="routePlan" label="Plano de Rota:" defaultValue={client.routePlan} required />
+        <Input name="fixedPlan" label="Plano Fixo:" defaultValue={client.fixedPlan} required />
         <div>
           <label className='text-lg font-bold text-foreground mb-2 block'>Status:</label>
-          <Select name="status" defaultValue={ client.status } required>
+          <Select name="status" defaultValue={client.status} required>
             <SelectTrigger>
               <SelectValue placeholder="Selecione um status" />
             </SelectTrigger>
@@ -114,9 +131,7 @@ export function EditClientForm({ client, managers, servers, onSuccess, onCancel 
         <Button type="button" variant="outline" onClick={ onCancel } className="w-full">
           Cancelar
         </Button>
-        <Button type="submit" disabled={ mutation.isPending } className="w-full">
-          {mutation.isPending ? "Salvando..." : "Atualizar Cliente"}
-        </Button>
+        <SubmitButton />
       </div>
     </form>
   );

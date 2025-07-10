@@ -61,7 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       if (trigger === 'update' && session) {
-        console.log(' token JWT:', session);
+        console.log('Atualizando token JWT:', session);
         token.name = session.name;
         token.email = session.email;
       }

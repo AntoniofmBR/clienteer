@@ -416,8 +416,8 @@ export function ClientsTable({ managers, servers, userRole }: {
               client={ selectedClient }
               managers={ managers }
               servers={ servers }
-              onSuccess={ () => setIsEditing(false) }
-              onCancel={ () => setIsEditing( false ) }
+              onSuccess={ handleCloseModal }
+              onCancel={ handleCloseModal }
             />
           ) : (
             <>

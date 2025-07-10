@@ -10,16 +10,16 @@ export const usersData = [
 export const serversData = [
   { name: 'Athena', ip: '192.168.1.10', status: ServerStatus.FUNCIONANDO },
   { name: 'Gandalf', ip: '192.168.1.11', status: ServerStatus.FUNCIONANDO },
-  { name: 'Rick', ip: '292.118.1.52', status: 'Inoperante' },
+  { name: 'Rick', ip: '292.118.1.52', status: ServerStatus.INOPERANTE },
   { name: 'Alien', ip: '392.168.1.22', status: ServerStatus.FUNCIONANDO },
   { name: 'Kratos', ip: '522.166.2.32', status: ServerStatus.FUNCIONANDO },
-  { name: 'Shrek', ip: '122.148.1.72', status: 'Inoperante' },
-  { name: 'Zeus', ip: '342.123.3.42', status: 'Inoperante' },
+  { name: 'Shrek', ip: '122.148.1.72', status: ServerStatus.INOPERANTE },
+  { name: 'Zeus', ip: '342.123.3.42', status: ServerStatus.INOPERANTE },
   { name: 'Mario', ip: '212.265.7.16', status: ServerStatus.FUNCIONANDO },
-  { name: 'Sonic', ip: '142.218.1.42', status: 'Inoperante' },
+  { name: 'Sonic', ip: '142.218.1.42', status: ServerStatus.INOPERANTE },
   { name: 'Xuxa', ip: '392.561.1.21', status: ServerStatus.FUNCIONANDO },
   { name: 'Zelda', ip: '292.261.6.19', status: ServerStatus.FUNCIONANDO },
-  { name: 'Morty', ip: '152.178.1.18', status: 'Inoperante' },
+  { name: 'Morty', ip: '152.178.1.18', status: ServerStatus.INOPERANTE },
 ];
 
 export const clientsData = [

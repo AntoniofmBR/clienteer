@@ -401,8 +401,8 @@ export function ServersTable({ userRole }: { userRole: string }) {
             { isEditing && userRole === 'ADMIN' ? (
               <EditServerForm
                 server={ selectedServer }
-                onSuccess={ () => setIsEditing(false) }
-                onCancel={ () => setIsEditing( false ) }
+                onSuccess={ handleCloseModal }
+                onCancel={ handleCloseModal }
               />
             ) : (
               <>

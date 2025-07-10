@@ -16,9 +16,9 @@ interface UserUpdatePayload {
 }
 
 async function updateUserMutationFn({ id, ...data }: { id: string } & UserUpdatePayload) {
-  const response = await fetch(`/api/user/${id}`, {
+  const response = await fetch( '/api/user/update', {
     method: 'PATCH',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ id, ...data }),
     headers: { 'Content-Type': 'application/json' },
   });
 

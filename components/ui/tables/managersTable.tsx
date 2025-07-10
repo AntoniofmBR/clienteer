@@ -407,8 +407,8 @@ export function ManagersTable({ userRole }: { userRole: string }) {
             { isEditing && userRole === 'ADMIN' ? (
               <EditManagerForm
                 manager={ selectedManager }
-                onSuccess={ () => setIsEditing(false) }
-                onCancel={ () => setIsEditing( false ) }
+                onSuccess={ handleCloseModal }
+                onCancel={ handleCloseModal }
               />
             ) : (
               <>

@@ -1,10 +1,11 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useFormStatus } from 'react-dom';
 import { toast } from 'sonner';
 
 import { ServerForTable } from '@/@types/servers';
-import { ServerStatus } from '@/lib/generated/prisma';
+import { ServerStatus } from '@prisma/client';
 
 import { Input } from './input';
 import { Button } from './button';
@@ -12,18 +13,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 type ServerUpdateData = Omit<ServerForTable, 'id' | 'createdAt' | 'updatedAt' | 'totalClients'>
 
-async function updateServerMutationFn({ id, ...data }: { id: string } & Partial<ServerUpdateData>) {
-  const response = await fetch(`/api/servers/${id}`, {
+async function updateServerMutationFn(data: { id: string } & Partial<ServerUpdateData>) {
+  const response = await fetch('/api/servers/update', {
     method: 'PATCH',
     body: JSON.stringify(data),
     headers: { 'Content-Type': 'application/json' },
   });
 
-  if ( !response.ok ) {
+  if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.error || 'Falha ao atualizar o servidor');
   }
   return response.json();
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={ pending } className="w-full">
+      { pending ? "Salvando..." : "Atualizar Servidor" }
+    </Button>
+  );
 }
 
 export function EditServerForm({ server, onSuccess, onCancel }: {
@@ -63,13 +73,13 @@ export function EditServerForm({ server, onSuccess, onCancel }: {
       <section>
         <div>
           <label className='text-lg font-bold text-foreground mb-2 block'>Status:</label>
-          <Select name="status" defaultValue={ server.status } required >
+          <Select name="status" defaultValue={ server.status } required>
             <SelectTrigger>
               <SelectValue placeholder="Selecione um status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ ServerStatus.FUNCIONANDO }>Funcionando</SelectItem>
-              <SelectItem value= { ServerStatus.INOPERANTE }>Inoperante</SelectItem>
+              <SelectItem value={ ServerStatus.INOPERANTE }>Inoperante</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -79,9 +89,7 @@ export function EditServerForm({ server, onSuccess, onCancel }: {
         <Button type="button" variant="outline" onClick={ onCancel } className="w-full">
           Cancelar
         </Button>
-        <Button type="submit" disabled={ mutation.isPending } className="w-full">
-          { mutation.isPending ? "Salvando..." : "Atualizar Servidor" }
-        </Button>
+        <SubmitButton />
       </div>
     </form>
   );
