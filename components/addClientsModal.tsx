@@ -22,7 +22,7 @@ export function AddClientsModal( { isAddModalOpen, setIsAddModalOpen, managers, 
         <AddClientForm
           managers={ managers }
           servers={ servers }
-          onClose={() => setIsAddModalOpen(false)}
+          onClose={ () => setIsAddModalOpen(false) }
         />
     </Modal>
   )

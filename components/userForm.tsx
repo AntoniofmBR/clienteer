@@ -16,17 +16,17 @@ interface UserUpdatePayload {
 }
 
 async function updateUserMutationFn({ id, ...data }: { id: string } & UserUpdatePayload) {
-  const response = await fetch( '/api/user/update', {
+  const res = await fetch( '/api/user/update', {
     method: 'PATCH',
     body: JSON.stringify({ id, ...data }),
     headers: { 'Content-Type': 'application/json' },
   });
 
-  if ( !response.ok ) {
-    const errorData = await response.json();
+  if ( !res.ok ) {
+    const errorData = await res.json();
     throw new Error(errorData.error || 'Falha ao atualizar o usuário');
   }
-  return response.json();
+  return res.json();
 }
 
 export function UserForm({ user }: { user: { id: string; name: string; email: string; } }) {

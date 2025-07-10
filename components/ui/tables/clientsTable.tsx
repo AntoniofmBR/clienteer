@@ -13,7 +13,8 @@ import {
 } from "@tanstack/react-table"
 import { Plus, XCircle } from 'phosphor-react'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 import { ClientForTable } from "@/@types/clients"
 import { ServerForTable } from "@/@types/servers"
@@ -21,7 +22,7 @@ import { User } from "@/@types/users"
 
 import { columns as baseColumns } from "./clientColumns"
 
-import { Modal } from '@/components/modal'
+import { SkeletonTable } from '@/components/skeletonTable'
 import { Button } from '@/components/button'
 import {
   Pagination,
@@ -41,15 +42,10 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/input'
 import { AddClientsModal } from '@/components/addClientsModal'
-import { EditClientForm } from '@/components/editClientForm'
+import { ConfirmationModal } from '@/components/confirmationModal'
+import { ClientsTableModal } from '@/components/clientsTableModal'
 
-async function fetchClients(): Promise<ClientForTable[]> {
-  const res = await fetch('/api/clients');
-  if (!res.ok) {
-    throw new Error('Network response was not ok');
-  }
-  return res.json();
-}
+import { deleteClientFn, fetchClients } from '@/db/mutations/clientsMutations'
 
 export function ClientsTable({ managers, servers, userRole }: { 
   managers: User[];
@@ -58,10 +54,14 @@ export function ClientsTable({ managers, servers, userRole }: {
 }) {
   const options = [ 5,
     10, 15, 20 ]
+  const queryClient = useQueryClient();
 
   const [ selectedClient, setSelectedClient ] = useState<ClientForTable | null>(null)
   const [ isAddModalOpen, setIsAddModalOpen ] = useState(false);
+
   const [ isEditing, setIsEditing ] = useState(false);
+
+  const [ clientToDelete, setClientToDelete ] = useState<ClientForTable | null>(null)
 
   const { data: clients, isLoading, isError } = useQuery<ClientForTable[]>({
     queryKey: ['clients'],
@@ -70,7 +70,7 @@ export function ClientsTable({ managers, servers, userRole }: {
 
   const [ pagination, setPagination ] = useState({
     pageIndex: 0,
-    pageSize: 5, //! valor inicial 
+    pageSize: 5, //! valor inicial
   })
 
   const [ globalFilter, setGlobalFilter ] = useState('')
@@ -164,6 +164,7 @@ export function ClientsTable({ managers, servers, userRole }: {
   };
 
   function handleCloseModal() {
+    setClientToDelete( null )
     setSelectedClient(null)
     setIsEditing(false)
     setIsAddModalOpen(false)
@@ -222,126 +223,152 @@ export function ClientsTable({ managers, servers, userRole }: {
     },
   ]
 
-  if ( isLoading ) return <p>Carregando tabela de servidores...</p>;
-  if ( isError ) return <p>Erro ao carregar os servidores.</p>;
+  const mutation = useMutation({
+    mutationFn: deleteClientFn,
+    onSuccess: () => {
+      toast.success('Cliente removido com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      handleCloseModal()
+    },
+    onError: ( err ) => {
+      toast.error( err.message );
+      setClientToDelete(null);
+    },
+  });
+
+  function handleOpenDeleteModal( client: ClientForTable | null ) {
+    if ( !client ) return
+    setClientToDelete(client);
+  };
+
+  function handleRemove() {
+    if ( clientToDelete ) {
+      mutation.mutate(clientToDelete.id);
+    } else {
+      toast.error("Nenhum cliente selecionado para remoção.");
+    }
+  }
+
+  if ( isLoading ) return <SkeletonTable /> ;
+  if ( isError ) return <p>Erro ao carregar os clientes.</p>;
 
   return (
-    <div className="w-full overflow-x-auto rounded-lg bg-transparent flex flex-col justify-between">
-      <header className='flex items-center justify-between' >
-        <div className='relative bg-cards-secondary h-7 w-[30%] text-sm rounded-lg font-bold px-2 py-5 flex items-center justify-center gap-4' >
+    <div className="w-full rounded-lg bg-transparent flex flex-col justify-between">
+      <header className='flex flex-col items-center justify-between gap-4 md:flex-row'>
+        <div className='relative bg-cards-secondary h-auto w-full text-sm rounded-lg font-bold px-2 py-3 flex items-center justify-center gap-2 flex-wrap md:w-[40%] lg:w-[30%]'>
           { filterTabs.map((tab) => (
-            <button
-              key={ tab.id }
-              onClick={ tab.action }
-              className="relative px-2 py-1 rounded-lg z-10 transition"
-              style={{
-                color: tab.isActive ? 'white' : 'gray'
-              }}
-            >
-              { tab.label }
-              { tab.isActive && (
-                <motion.div
-                  layoutId="active-background"
-                  className="absolute inset-0 bg-green rounded-lg"
-                  transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  style={{ zIndex: -1 }}
-                />
-              ) }
-            </button>
-          ))}
+          <button
+            key={ tab.id }
+            onClick={ tab.action }
+            className="relative px-2 py-1 rounded-lg z-10 transition"
+            style={{
+              color: tab.isActive ? 'white' : 'gray'
+            }}
+          >
+            { tab.label }
+            { tab.isActive && (
+              <motion.div
+                layoutId="active-background"
+                className="absolute inset-0 bg-green rounded-lg"
+                transition={ { type: "spring", stiffness: 350, damping: 30 } }
+                style={ { zIndex: -1 } }
+              />
+            ) }
+          </button>
+        ))}
         </div>
 
-        <div className='flex w-[30%] h-12' >
+        <div className='flex w-full h-12 md:w-[30%]'>
           <Input
             placeholder='Pesquisar Cliente'
             value={ globalFilter ?? '' }
             onChange={ ( e ) => setGlobalFilter( e.target.value ) }
           />
         </div>
-        
+
         { userRole === 'ADMIN' && (
-          <div className='w-[30%] h-7 flex justify-end' >
+          <div className='w-full h-7 flex justify-center md:w-[30%] md:justify-end'>
             <button
               className='flex justify-end items-center gap-2 h-full'
-              onClick={ () => setIsAddModalOpen(true) }
+              onClick={() => setIsAddModalOpen(true)}
             >
-              <Plus
-                weight='bold'
-                size={ 27 }
-              />
-              <p className='text-lg font-semibold' >
+              <Plus weight='bold' size={27} />
+              <p className='text-lg font-semibold'>
                 Adicionar Novo Cliente
               </p>
             </button>
           </div>
-        ) }
+        )}
       </header>
 
-      <table className="w-full text-center text-sm border-separate border-spacing-y-3">
-        <thead className="bg-cards-secondary text-white">
-          { table.getHeaderGroups().map(headerGroup => (
-            <tr key={headerGroup.id}>
-              { headerGroup.headers.map((header, index) => (
-                <th
-                  key={ header.id }
-                  className={`
-                    px-4 py-3 font-semibold
-                    ${ index === 0 ? 'rounded-l-lg' : '' }
-                    ${ index === headerGroup.headers.length - 1 ? 'rounded-r-lg' : '' }
-                  `}
-                  onClick={header.column.getToggleSortingHandler()}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    { flexRender(header.column.columnDef.header, header.getContext()) }
-                    { header.column.getIsSorted() === 'asc' && <span className="ml-1">⬆️</span> }
-                    { header.column.getIsSorted() === 'desc' && <span className="ml-1">⬇️</span> }
-                  </div>
-                </th>
-              )) }
-            </tr>
-          )) }
-        </thead>
-
-        <tbody>
-          { table.getRowModel().rows.length ? (
-            table.getRowModel().rows.map(row => (
-              <tr
-                key={ row.id }
-                className="bg-cards-secondary rounded-lg overflow-hidden my-2"
-              >
-                { row.getVisibleCells().map(cell => (
-                  <td
-                    key={cell.id}
-                    className="px-4 py-3 text-white first:rounded-l-lg last:rounded-r-lg"
+      <div className='overflow-x-auto' >
+        <table className="w-full text-center text-sm border-separate border-spacing-y-3">
+          <thead className="bg-cards-secondary text-white w-full">
+            { table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id}>
+                { headerGroup.headers.map((header, index) => (
+                  <th
+                    key={ header.id }
+                    
+                    className={`
+                      px-4 py-3 font-semibold
+                      ${ index === 0 ? 'rounded-l-lg' : '' }
+                      ${ index === headerGroup.headers.length - 1 ? 'rounded-r-lg' : '' }
+                    `}
+                    onClick={header.column.getToggleSortingHandler()}
                   >
-                    { flexRender(cell.column.columnDef.cell, cell.getContext()) }
-                  </td>
+                    <div className="flex items-center justify-center gap-1">
+                      { flexRender(header.column.columnDef.header, header.getContext()) }
+                      { header.column.getIsSorted() === 'asc' && <span className="ml-1">⬆️</span> }
+                      { header.column.getIsSorted() === 'desc' && <span className="ml-1">⬇️</span> }
+                    </div>
+                  </th>
                 )) }
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={ columns.length } className="flex items-center justify-center gap-2 text-center py-4 text-white">
-                <XCircle size={ 22 } weight='fill' />
-                <p>
-                   Nenhum resultado encontrado.
-                </p>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )) }
+          </thead>
 
-      <footer className='flex items-center justify-between' >
-        <div className='w-fit py-2 px-4 flex items-center justify-center bg-cards-secondary rounded-lg' >
-          <p className='font-semibold' >
-            { currentItemsPerPage } de { clients?.length || '0' } Clientes
+          <tbody>
+            { table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map(row => (
+                <tr
+                  key={ row.id }
+                  className="bg-cards-secondary rounded-lg overflow-hidden my-2"
+                >
+                  { row.getVisibleCells().map(cell => (
+                    <td
+                      key={cell.id}
+                      className="px-4 py-3 text-white first:rounded-l-lg last:rounded-r-lg"
+                    >
+                      { flexRender(cell.column.columnDef.cell, cell.getContext()) }
+                    </td>
+                  )) }
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={ columns.length } className="flex items-center justify-center gap-2 text-center py-4 text-white">
+                  <XCircle size={ 22 } weight='fill' />
+                  <p>
+                    Nenhum resultado encontrado.
+                  </p>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <footer className='flex flex-col items-center justify-between gap-4 mt-4 md:flex-row'>
+        <div className='w-full md:w-fit py-2 px-4 flex items-center justify-center bg-cards-secondary rounded-lg'>
+          <p className='font-semibold'>
+            { currentItemsPerPage} de { clients?.length || '0' } Clientes
           </p>
         </div>
 
-        <div className='w-fit' >
+        <div className='w-full md:w-auto'>
           { table.getRowModel().rows.length > 0 && (
-            <div className="flex items-center justify-end space-x-2 p-4 bg-cards-secondary rounded-lg h-fit">
+            <div className="flex items-center justify-center space-x-2 p-4 bg-cards-secondary rounded-lg h-fit">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
@@ -355,8 +382,8 @@ export function ClientsTable({ managers, servers, userRole }: {
                     <PaginationItem key={ index }>
                       { typeof item === 'number' ? (
                         <PaginationLink
-                          onClick={() => setPageIndex(item)}
-                          isActive={item === pagination.pageIndex}
+                          onClick={ () => setPageIndex(item) }
+                          isActive={ item === pagination.pageIndex }
                           size='sm'
                         >
                           {item + 1}
@@ -376,21 +403,21 @@ export function ClientsTable({ managers, servers, userRole }: {
                 </PaginationContent>
               </Pagination>
             </div>
-          ) }
+          )}
         </div>
 
-        <div className='flex justify-center items-center gap-2 mr-2 w-fit' >
-          <p className='text-lg font-semibold' >
+        <div className='w-full flex justify-center items-center gap-2 md:w-fit'>
+          <p className='text-lg font-semibold'>
             Clientes por Página
           </p>
           <Select
-            value={`${currentItemsPerPage}`}
+            value={`${ currentItemsPerPage }`}
             onValueChange={(value) => {
               setPageSize(Number(value));
             }}
           >
             <SelectTrigger className="h-8 w-[70px] bg-cards-secondary text-white">
-              <SelectValue placeholder={currentItemsPerPage.toString()} />
+              <SelectValue placeholder={ currentItemsPerPage.toString() } />
             </SelectTrigger>
             <SelectContent className="bg-cards-secondary text-white">
               { options.map(( pageSize ) => (
@@ -403,55 +430,36 @@ export function ClientsTable({ managers, servers, userRole }: {
         </div>
       </footer>
 
-    <Modal
-      isOpen={ !!selectedClient }
-      onClose={ handleCloseModal }
-      title={ isEditing ? "Editar Cliente" : "Detalhes do Cliente"}
-      description={ isEditing ? "Altere os dados necessários abaixo." : "Confira os detalhes do cliente" }
-    >
-      { selectedClient && (
-        <div>
-          { isEditing && userRole === 'ADMIN' ? (
-            <EditClientForm
-              client={ selectedClient }
-              managers={ managers }
-              servers={ servers }
-              onSuccess={ handleCloseModal }
-              onCancel={ handleCloseModal }
-            />
-          ) : (
-            <>
-              <div className="space-y-2">
-                <p className='text-lg'><strong>Id:</strong> { selectedClient.id }</p>
-                <p className='text-lg'><strong>Nome:</strong> { selectedClient.name }</p>
-                <p className='text-lg'><strong>Empresa:</strong> { selectedClient.company }</p>
-                <p className='text-lg'><strong>Plano de Rota:</strong> { selectedClient.routePlan }</p>
-                <p className='text-lg'><strong>PLano Fixo:</strong> { selectedClient.fixedPlan }</p>
-                <p className='text-lg'><strong>Servidor:</strong> { selectedClient.server }</p>
-                <p className='text-lg'><strong>Status:</strong> { selectedClient.status }</p>
-                <p className='text-lg'><strong>Gerente:</strong> { selectedClient.managerName }</p>
-                <p className='text-lg'><strong>Criado em:</strong> { new Date(selectedClient.createdAt).toLocaleDateString( 'pt-BR' ) }</p>
-                <p className='text-lg'><strong>Ultima vez atualizado em: </strong> { new Date( selectedClient.updatedAt ).toLocaleDateString('pt-BR') }</p>
-              </div>
-              { userRole === 'ADMIN' && (
-                <div className="mt-6 flex justify-end">
-                  <Button onClick={ () => setIsEditing(true) }>
-                    Atualizar dados
-                  </Button>
-                </div>
-              ) }
-            </>
-          )}
-        </div>
-      )}
-    </Modal>
+      <ClientsTableModal
+        isOpen={ !!selectedClient }
+        title={ isEditing ? "Editar Cliente" : "Detalhes do Cliente"}
+        description={ isEditing ? "Altere os dados necessários abaixo." : "Confira os detalhes do cliente" }
+        handleCloseModal={ handleCloseModal }
+        handleOpenDeleteModal={ () => handleOpenDeleteModal( selectedClient ) }
+        isEditing={ isEditing }
+        managers={ managers }
+        servers={ servers }
+        selectedClient={ selectedClient }
+        setIsEditing={ setIsEditing }
+        userRole={ userRole }
+      />
 
-    <AddClientsModal
-      isAddModalOpen={ isAddModalOpen }
-      setIsAddModalOpen={ setIsAddModalOpen }
-      managers={ managers }
-      servers={ servers }
-    />
+      <AddClientsModal
+        isAddModalOpen={ isAddModalOpen }
+        setIsAddModalOpen={ setIsAddModalOpen }
+        managers={ managers }
+        servers={ servers }
+      />
+
+      <ConfirmationModal
+        title={ clientToDelete ? `Tem Certeza que Deseja Remover "${ clientToDelete.name }"?` : "Tem Certeza que Deseja Continuar?" }
+        description='Essa ação é irreversível!'
+        isOpen={ !!clientToDelete }
+        onClose={ handleCloseModal }
+        onConfirm={ handleRemove }
+        isLoading={ mutation.isPending }
+        size='lg'
+      />
     </div>
   )
 }

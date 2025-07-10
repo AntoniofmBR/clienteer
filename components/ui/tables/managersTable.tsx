@@ -13,12 +13,13 @@ import {
 } from "@tanstack/react-table"
 import { Plus, XCircle } from 'phosphor-react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { ManagerForTable, User } from "@/@types/users"
+import { ManagerForTable } from "@/@types/users"
 
 import { columns as baseColumns } from "./managerColumns"
 
-import { Modal } from '@/components/modal'
 import { Button } from '@/components/button'
 import {
   Pagination,
@@ -37,25 +38,25 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/input'
-import { useQuery } from '@tanstack/react-query'
 import { AddManagersModal } from '@/components/addManagersModal'
-import { EditManagerForm } from '@/components/editManagerForm'
+import { ConfirmationModal } from '@/components/confirmationModal'
 
-async function fetchManagers(): Promise<ManagerForTable[]> {
-  const res = await fetch('/api/managers');
-  if (!res.ok) {
-    throw new Error('Network response was not ok');
-  }
-  return res.json();
-}
+import { deleteServerFn, fetchManagers } from '@/db/mutations/managersMutations'
+import { ManagersTableModal } from '@/components/managersTableModal'
+import { SkeletonTable } from '@/components/skeletonTable'
 
 export function ManagersTable({ userRole }: { userRole: string }) {
   const options = [ 5,
     10, 15, 20 ]
+  const queryClient = useQueryClient();
 
   const [ selectedManager, setSelectedManager ] = useState<ManagerForTable | null>(null)
+
   const [ isAddModalOpen, setIsAddModalOpen ] = useState(false);
+
   const [ isEditing, setIsEditing ] = useState(false);
+
+  const [ managerToDelete, setManagerToDelete ] = useState<ManagerForTable | null>(null)
 
   const { data: managers, isLoading, isError } = useQuery<ManagerForTable[]>({
     queryKey: ['managers'],
@@ -172,6 +173,7 @@ export function ManagersTable({ userRole }: { userRole: string }) {
     setSelectedManager(null)
     setIsEditing(false)
     setIsAddModalOpen(false)
+    setManagerToDelete( null )
   }
 
   const filterTabs = [
@@ -217,10 +219,39 @@ export function ManagersTable({ userRole }: { userRole: string }) {
     },
   ]
 
+   const mutation = useMutation({
+    mutationFn: deleteServerFn,
+    onSuccess: () => {
+      toast.success('Gerente removido com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['managers'] });
+      handleCloseModal()
+    },
+    onError: ( err ) => {
+      toast.error( err.message );
+      setManagerToDelete(null);
+    },
+  });
+
+  function handleOpenDeleteModal( manager: ManagerForTable | null ) {
+    if ( !manager ) return
+    setManagerToDelete(manager);
+  };
+
+  function handleRemove() {
+    if ( managerToDelete ) {
+      mutation.mutate(managerToDelete.id);
+    } else {
+      toast.error("Nenhum gerente selecionado para remoção.");
+    }
+  }
+
+  if ( isLoading ) return <SkeletonTable />;
+  if ( isError ) return <p>Erro ao carregar os gerentes.</p>;
+
   return (
     <div className="w-full overflow-x-auto rounded-lg bg-transparent flex flex-col justify-between">
-      <header className='flex items-center justify-between' >
-        <div className='relative bg-cards-secondary h-7 w-[30%] text-sm rounded-lg font-bold px-2 py-5 flex items-center justify-center gap-4' >
+      <header className='flex flex-col items-center justify-between gap-4 md:flex-row' >
+        <div className='relative bg-cards-secondary h-auto w-full text-sm rounded-lg font-bold px-2 py-3 flex items-center justify-center gap-2 flex-wrap md:w-auto' >
           { filterTabs.map((tab) => (
             <button
               key={ tab.id }
@@ -243,7 +274,7 @@ export function ManagersTable({ userRole }: { userRole: string }) {
           ))}
         </div>
 
-        <div className='flex w-[30%] h-12' >
+        <div className='flex w-full h-12 md:w-[30%]' >
           <Input
             placeholder='Pesquisar Gerentes'
             value={ globalFilter ?? '' }
@@ -252,7 +283,7 @@ export function ManagersTable({ userRole }: { userRole: string }) {
         </div>
         
         { userRole === 'ADMIN' && (
-          <div className='w-[30%] h-7 flex justify-end' >
+          <div className='w-full h-7 flex justify-center md:w-auto md:justify-end' >
             <button
               className='flex justify-end items-center gap-2 h-full'
               onClick={ () => setIsAddModalOpen( true ) }
@@ -269,69 +300,71 @@ export function ManagersTable({ userRole }: { userRole: string }) {
         ) }
       </header>
 
-      <table className="w-full text-center text-sm border-separate border-spacing-y-3">
-        <thead className="bg-cards-secondary text-white">
-          { table.getHeaderGroups().map(headerGroup => (
-            <tr key={headerGroup.id}>
-              { headerGroup.headers.map((header, index) => (
-                <th
-                  key={ header.id }
-                  className={`
-                    px-4 py-3 font-semibold
-                    ${ index === 0 ? 'rounded-l-lg' : '' }
-                    ${ index === headerGroup.headers.length - 1 ? 'rounded-r-lg' : '' }
-                  `}
-                  onClick={header.column.getToggleSortingHandler()}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    { flexRender(header.column.columnDef.header, header.getContext()) }
-                    { header.column.getIsSorted() === 'asc' && <span className="ml-1">⬆️</span> }
-                    { header.column.getIsSorted() === 'desc' && <span className="ml-1">⬇️</span> }
-                  </div>
-                </th>
-              )) }
-            </tr>
-          )) }
-        </thead>
-
-        <tbody>
-          { table.getRowModel().rows.length ? (
-            table.getRowModel().rows.map(row => (
-              <tr
-                key={ row.id }
-                className="bg-cards-secondary rounded-lg overflow-hidden my-2"
-              >
-                { row.getVisibleCells().map(cell => (
-                  <td
-                    key={ cell.id }
-                    className="px-4 py-3 text-white first:rounded-l-lg last:rounded-r-lg"
+      <div className='overflow-x-auto' >
+        <table className="w-full text-center text-sm border-separate border-spacing-y-3">
+          <thead className="bg-cards-secondary text-white">
+            { table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id}>
+                { headerGroup.headers.map((header, index) => (
+                  <th
+                    key={ header.id }
+                    className={`
+                      px-4 py-3 font-semibold
+                      ${ index === 0 ? 'rounded-l-lg' : '' }
+                      ${ index === headerGroup.headers.length - 1 ? 'rounded-r-lg' : '' }
+                    `}
+                    onClick={header.column.getToggleSortingHandler()}
                   >
-                    { flexRender(cell.column.columnDef.cell, cell.getContext()) }
-                  </td>
+                    <div className="flex items-center justify-center gap-1">
+                      { flexRender(header.column.columnDef.header, header.getContext()) }
+                      { header.column.getIsSorted() === 'asc' && <span className="ml-1">⬆️</span> }
+                      { header.column.getIsSorted() === 'desc' && <span className="ml-1">⬇️</span> }
+                    </div>
+                  </th>
                 )) }
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={ columns.length } className="flex items-center justify-center gap-2 text-center py-4 text-white">
-                <XCircle size={ 22 } weight='fill' />
-                <p>
-                   Nenhum resultado encontrado.
-                </p>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )) }
+          </thead>
 
-      <footer className='flex items-center justify-between' >
-        <div className='w-fit py-2 px-4 flex items-center justify-center bg-cards-secondary rounded-lg' >
+          <tbody>
+            { table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map(row => (
+                <tr
+                  key={ row.id }
+                  className="bg-cards-secondary rounded-lg overflow-hidden my-2"
+                >
+                  { row.getVisibleCells().map(cell => (
+                    <td
+                      key={ cell.id }
+                      className="px-4 py-3 text-white first:rounded-l-lg last:rounded-r-lg"
+                    >
+                      { flexRender(cell.column.columnDef.cell, cell.getContext()) }
+                    </td>
+                  )) }
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={ columns.length } className="flex items-center justify-center gap-2 text-center py-4 text-white">
+                  <XCircle size={ 22 } weight='fill' />
+                  <p>
+                    Nenhum resultado encontrado.
+                  </p>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <footer className='flex flex-col items-center justify-between gap-4 mt-4 md:flex-row' >
+        <div className='w-full md:w-fit py-2 px-4 flex items-center justify-center bg-cards-secondary rounded-lg' >
           <p className='font-semibold' >
             { currentItemsPerPage } de { managers?.length } Gerentes
           </p>
         </div>
 
-        <div className='w-fit' >
+        <div className='w-full md:w-auto flex justify-center' >
           { table.getRowModel().rows.length > 0 && (
             <div className="flex items-center justify-end space-x-2 p-4 bg-cards-secondary rounded-lg h-fit">
               <Pagination>
@@ -371,7 +404,7 @@ export function ManagersTable({ userRole }: { userRole: string }) {
           ) }
         </div>
 
-        <div className='flex justify-center items-center gap-2 mr-2 w-fit' >
+        <div className='w-full flex justify-center items-center gap-2 md:w-fit' >
           <p className='text-lg font-semibold' >
             Gerentes por Página
           </p>
@@ -395,60 +428,32 @@ export function ManagersTable({ userRole }: { userRole: string }) {
         </div>
       </footer>
 
-      <Modal
+      <ManagersTableModal
         isOpen={ !!selectedManager }
-        onClose={ handleCloseModal }
-        title='Detalhes do Gerente'
-        description='Confira os detalhes do gerente'
-        size='xl'
-      >
-        { selectedManager && (
-          <div className="space-y-2">
-            { isEditing && userRole === 'ADMIN' ? (
-              <EditManagerForm
-                manager={ selectedManager }
-                onSuccess={ handleCloseModal }
-                onCancel={ handleCloseModal }
-              />
-            ) : (
-              <>
-                <div className="space-y-2" >
-                  <p className='text-lg'>
-                    <strong> Id: </strong> { selectedManager.id }
-                  </p>
-                  <p className='text-lg'>
-                    <strong> Nome: </strong> { selectedManager.name }
-                  </p>
-                  <p className='text-lg'>
-                    <strong> Email: </strong> { selectedManager.email }
-                  </p>
-                  <p className='text-lg'>
-                    <strong> Total de clientes: </strong> { selectedManager.clientsCount }
-                  </p>
-                  <p className='text-lg'>
-                    <strong> Criado em: </strong> { new Date( selectedManager.createdAt ).toLocaleDateString('pt-BR') }
-                  </p>
-                  <p className='text-lg'>
-                    <strong> Ultima vez atualizado em: </strong> { new Date( selectedManager.updatedAt ).toLocaleDateString('pt-BR') }
-                  </p>
-                </div>
-                { userRole === 'ADMIN' && (
-                  <div className="mt-6 flex justify-end">
-                    <Button onClick={ () => setIsEditing(true) }>
-                      Atualizar dados
-                    </Button>
-                  </div>
-                ) }
-              </>
-            ) }
-          </div>
-        ) }
-      </Modal>
+        title={ isEditing ? "Editar Gerente" : "Detalhes do Gerente"}
+        description={ isEditing ? "Altere os dados necessários abaixo." : 'Confira os detalhes do gerente' }
+        handleCloseModal={ handleCloseModal }
+        handleOpenDeleteModal={ () => handleOpenDeleteModal( selectedManager ) }
+        isEditing={ isEditing }
+        selectedManager={ selectedManager }
+        setIsEditing={ setIsEditing }
+        userRole={ userRole }
+      />
 
       <AddManagersModal
         isAddModalOpen={ isAddModalOpen }
         setIsAddModalOpen={ setIsAddModalOpen }
       />
+
+    <ConfirmationModal
+      title={ managerToDelete ? `Tem Certeza que Deseja Remover "${ managerToDelete.name }"?` : "Tem Certeza que Deseja Continuar?" }
+      description='Essa ação é irreversível!'
+      isOpen={ !!managerToDelete }
+      onClose={ handleCloseModal }
+      onConfirm={ handleRemove }
+      isLoading={ mutation.isPending }
+      size='lg'
+    />
     </div>
   )
 }

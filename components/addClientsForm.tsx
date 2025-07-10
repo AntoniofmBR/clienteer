@@ -12,17 +12,17 @@ type Manager = { id: string; name: string };
 type Server = { id: string; name: string };
 
 async function postClient( formData: FormData ) {
-  const response = await fetch('/api/clients', {
+  const res = await fetch('/api/clients', {
     method: 'POST',
     body: JSON.stringify(Object.fromEntries(formData)),
     headers: { 'Content-Type': 'application/json' },
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
+  if ( !res.ok ) {
+    const errorData = await res.json();
     throw new Error(errorData.error || 'Falha ao criar o cliente');
   }
-  return response.json();
+  return res.json();
 }
 
 export function AddClientForm({ managers, servers, onClose  }: { managers: Manager[]; servers: Server[], onClose: () => void }) {

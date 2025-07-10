@@ -32,8 +32,8 @@ export function SettingsForm({ user, userRole }: SettingsFormProps ) {
   }
 
   return (
-    <div className='flex gap-2'>
-      <section className='w-1/2 bg-cards-primary rounded-lg p-7 flex flex-col items-center justify-between'>
+    <div className='flex flex-col md:flex-row gap-2'>
+      <section className='w-full md:w-1/2 bg-cards-primary rounded-lg p-7 flex flex-col items-center justify-between'>
         <div className='flex items-center gap-2'>
           <UserIcon size={ 37 } weight='fill' />
           <h2 className='text-2xl font-semibold'> Perfil </h2>
@@ -41,7 +41,7 @@ export function SettingsForm({ user, userRole }: SettingsFormProps ) {
         <UserForm user={ user } />
       </section>
       { userRole === 'MANAGER' && (
-        <section className='w-1/2 bg-cards-primary rounded-lg p-7 flex flex-col items-center justify-center' >
+        <section className='w-full md:w-1/2 bg-cards-primary rounded-lg p-7 flex flex-col items-center justify-center' >
           <div className='flex items-center gap-2' >
             <Warning size={ 37 } weight='fill' />
             <h2 className='text-2xl font-semibold' >

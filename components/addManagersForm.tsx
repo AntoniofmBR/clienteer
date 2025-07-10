@@ -7,17 +7,17 @@ import { Input } from "./input";
 import { Button } from "./button";
 
 async function postManger( formData: FormData ) {
-  const response = await fetch('/api/managers', {
+  const res = await fetch('/api/managers', {
     method: 'POST',
     body: JSON.stringify(Object.fromEntries(formData)),
     headers: { 'Content-Type': 'application/json' },
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
+  if ( !res.ok ) {
+    const errorData = await res.json();
     throw new Error(errorData.error || 'Falha ao criar o cliente');
   }
-  return response.json();
+  return res.json();
 }
 
 export function AddManagerForm({ onClose }: { onClose: () => void }) {

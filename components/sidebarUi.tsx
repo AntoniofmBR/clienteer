@@ -63,13 +63,11 @@ export function SidebarUI() {
 
   return (
     <TooltipProvider>
-      <section className='flex flex-col justify-between items-center h-full rounded-lg py-7 bg-cards-primary px-12'>
+      <section className='flex flex-col justify-between items-center h-full rounded-lg py-7 bg-cards-primary px-2 md:px-12'>
         <Image
           src={ logoShort }
           alt='Logo Clienteer'
-          width={ 56 }
-          height={ 56 }
-          className='max-w-14'
+          className='max-w-14 h-fit w-fit '
           priority
         />
 

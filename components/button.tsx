@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import type { HTMLMotionProps } from 'framer-motion'
 
 interface ButtonProps extends HTMLMotionProps<'button'> {
-  variant?: 'primary' | 'outline'
+  variant?: 'primary' | 'outline' | 'destructive'
   size?: 'sm' | 'md' | 'lg'
 }
 
@@ -13,11 +13,12 @@ export function Button({
   className = '',
   ...props
 }: ButtonProps) {
-  const baseStyles = 'rounded-lg w-full font-medium transition-all'
+  const baseStyles = 'rounded-lg w-full font-medium transition-all px-4 py-3'
 
   const variants = {
-    primary: 'bg-green px-6 py-3 text-foreground font-semibold',
-    outline: 'border border-green text-foreground',
+    primary: 'bg-green text-foreground font-semibold hover:bg-green',
+    outline: 'border border-green text-foreground hover:bg-green',
+    destructive: 'bg-red',
   }
 
   const sizes = {
@@ -28,7 +29,7 @@ export function Button({
 
   return (
     <motion.button
-      whileHover={{ scale: 1.05, background: '#00A45C' }}
+      whileHover={{ scale: 1.05 }}
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >

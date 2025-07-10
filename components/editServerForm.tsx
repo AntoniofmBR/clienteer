@@ -14,17 +14,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 type ServerUpdateData = Omit<ServerForTable, 'id' | 'createdAt' | 'updatedAt' | 'totalClients'>
 
 async function updateServerMutationFn(data: { id: string } & Partial<ServerUpdateData>) {
-  const response = await fetch('/api/servers/update', {
+  const res = await fetch('/api/servers/update', {
     method: 'PATCH',
     body: JSON.stringify(data),
     headers: { 'Content-Type': 'application/json' },
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
+  if ( !res.ok ) {
+    const errorData = await res.json();
     throw new Error(errorData.error || 'Falha ao atualizar o servidor');
   }
-  return response.json();
+  return res.json();
 }
 
 function SubmitButton() {

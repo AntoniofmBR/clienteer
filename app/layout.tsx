@@ -23,6 +23,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+      <head>
+      </head>
       <body
         className={`${ getRoboto.variable } bg-background text-foreground antialiased`}
       >

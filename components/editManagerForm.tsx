@@ -20,17 +20,17 @@ type ManagerUpdatePayload = {
 };
 
 async function updateManagerMutationFn( payload: ManagerUpdatePayload ) {
-  const response = await fetch('/api/user/update', {
+  const res = await fetch('/api/user/update', {
     method: 'PATCH',
     body: JSON.stringify(payload),
     headers: { 'Content-Type': 'application/json' },
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
+  if ( !res.ok ) {
+    const errorData = await res.json();
     throw new Error(errorData.error || 'Falha ao atualizar o gerente');
   }
-  return response.json();
+  return res.json();
 }
 
 function SubmitButton() {

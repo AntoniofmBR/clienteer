@@ -25,17 +25,17 @@ type ClientUpdateData = {
 };
 
 async function updateClientMutationFn(data: ClientUpdateData) {
-  const response = await fetch(`/api/clients/update`, {
+  const res = await fetch('/api/clients/update', {
     method: 'PATCH',
     body: JSON.stringify(data),
     headers: { 'Content-Type': 'application/json' },
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
+  if ( !res.ok ) {
+    const errorData = await res.json();
     throw new Error(errorData.error || 'Falha ao atualizar o cliente');
   }
-  return response.json();
+  return res.json();
 }
 
 function SubmitButton() {
